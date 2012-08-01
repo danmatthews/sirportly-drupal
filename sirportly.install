@@ -1,0 +1,17 @@
+<?php
+
+/*
+ * @file
+ * Handles the uninstall and update functions for the module.
+ */
+ 
+ /**
+ * Uninstall the variables used by the module.
+ */
+function sirportly_uninstall() {
+  // Delete all lists.
+  db_delete('variable')
+    ->condition('sirportly_api_key')
+    ->execute();
+  variable_del('sirportly_api_key');
+}

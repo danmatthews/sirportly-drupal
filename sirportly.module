@@ -1,0 +1,412 @@
+<?php
+
+/**
+ * Module that plugs in Sirportly functionality to your Drupal web site.
+ * For Sirportly information see: http://sirportly.com
+ */
+
+include_once('libs/class.php');
+
+define('SIRPORTLY_API_URL', 'https://api.sirportly.com/');
+
+/**
+ * Implementation of hook_menu()
+ */
+function sirportly_menu() {
+
+    $items['admin/config/services/sirportly'] = array(
+      'title' => 'Sirportly API Settings',
+      'description' => 'Connects to the Sirportly API',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('sirportly_admin'),
+      'access arguments' => array('administer sirportly'),
+      'type' => MENU_NORMAL_ITEM,
+    );
+
+    $items['admin/sirportly'] = array(
+      'title' => 'Support',
+      'access arguments' => array('submit sirportly ticket'),
+      'page callback' => 'sirportly_home',
+      'type' => MENU_NORMAL_ITEM
+    );
+
+    $items['admin/sirportly/submit'] = array(
+      'title' => 'Submit a support ticket',
+      'description' => 'Submit a support ticket directly to {{ company_name }} from here.',
+      'page callback' => 'sirportly_ticket_submit',
+      'access arguments' => array('submit sirportly ticket'),
+      'type' => MENU_LOCAL_ACTION,
+    );
+
+    return $items;
+}
+
+function sirportly_home() {
+
+  $token = variable_get('sirportly_api_token', '');
+
+  $secret = variable_get('sirportly_api_secret', '');
+
+  global $user;
+
+  $sirportly_ids = variable_get("Sirportly_ID_list_{$user->uid}", null);
+
+  if (!$sirportly_ids || count($sirportly_ids) === 0) {
+    return 'You have not submitted any tickets to us yet.';
+  }
+
+  $s = new Sirportly($token, $secret);
+
+  $users = $s->tickets(array('customer' => $sirportly_ids[0]));
+
+  dump($users);
+
+}
+
+/**
+ * Implementation of hook_permission
+ */
+function sirportly_permission() {
+  return array(
+    'administer sirportly' => array(
+      'title' => t('Administer Sirtportly')
+    ),
+    'submit sirportly ticket' => array(
+      'title' => t('Submit support tickets using the Sirportly module'),
+    ),
+  );
+}
+
+// Create the form
+function sirportly_admin() {
+
+  // Check that the needed metadata is there, and if not, download it and store it.
+
+  cache_sirportly_metadata();
+
+  $form = array();
+
+  $collapsed = is_string(variable_get('sirportly_api_token', null)) && is_string(variable_get('sirportly_api_secret', null)) ? TRUE : FALSE;
+
+  $form['sirportly_account'] = array(
+    '#type' => 'fieldset',
+    '#title' => t('Sirportly API credentials'),
+    '#collapsible' => TRUE,
+    '#collapsed' => $collapsed,
+  );
+
+  $form['sirportly_account']['sirportly_api_token'] = array(
+    '#type' => 'textfield',
+    '#title' => t('API Token'),
+    '#description' => t('Your Sirpotly API Token. See <a href="http://sirportly.com/docs/api-specification">documentation</a> for details.'),
+    '#default_value' => variable_get('sirportly_api_token', ''),
+    '#required' => TRUE,
+  );
+
+  $form['sirportly_account']['sirportly_api_secret'] = array(
+    '#type' => 'textfield',
+    '#title' => t('API Secret'),
+    '#description' => t('Your Sirpotly API Secret. See <a href="http://sirportly.com/docs/api-specification">documentation</a> for details.'),
+    '#default_value' => variable_get('sirportly_api_secret', ''),
+    '#required' => TRUE,
+  );
+
+  // Support information, name etc.
+
+  $form['support_information'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Support information',
+    '#collapsible' => FALSE,
+    '#collapsed' => FALSE,
+  );
+
+  $form['support_information']['company_name'] = array(
+    '#type' => 'textfield',
+    '#title' => 'Company Name',
+    '#description' => t('Add the name of your company, or the company who handles support requests, here.'),
+    '#required' => TRUE,
+    '#default_value' => variable_get('company_name', ''),
+  );
+
+  // Ticket routing information.
+
+  $form['ticket_information'] = array(
+    '#type' => 'fieldset',
+    '#title' => 'Department & Brand information',
+    '#description' => t('Determine information applied to newly submitted tickets.'),
+  );
+
+  $form['ticket_information']['sp_ticket_priority'] = array(
+    '#type' => 'select',
+    '#options' => variable_get('sirportly_metadata_priorities'),
+    '#title' => 'Submitted ticket priority',
+    '#required' => TRUE,
+    '#default_value' => variable_get('sp_ticket_priority')
+  );
+
+  $form['ticket_information']['sp_ticket_status'] = array(
+    '#type' => 'select',
+    '#options' => variable_get('sirportly_metadata_statuses'),
+    '#title' => 'Submitted ticket status',
+    '#required' => TRUE,
+    '#default_value' => variable_get('sp_ticket_status'),
+  );
+
+  $form['ticket_information']['sp_ticket_department'] = array(
+    '#type' => 'select',
+    '#options' => variable_get('sirportly_metadata_departments'),
+    '#title' => 'Submitted ticket department',
+    '#description' => t('Select the department this ticket will be assigned to.'),
+    '#required' => TRUE,
+    '#default_value' => variable_get('sp_ticket_department'),
+  );
+
+  return system_settings_form($form);
+
+}
+
+/**
+ * Determine if all the neccessary settings have been set.
+ * @return bool True if all settings are ok, false if not.
+ */
+function __determine_all_sp_set() {
+
+  $token = variable_get('sirportly_api_token', null);
+
+  $secret = variable_get('sirportly_api_secret', null);
+
+  $test = (is_string($token) && is_string($secret)) ? TRUE : FALSE;
+
+  if (!$test) {
+    drupal_set_message('Not all of the required credentials have been set in order to use the Sirportly module, please <a href="">configure</a> then now.', 'error');
+  }
+
+}
+
+/**
+ * Menu callback to allow you to submit a ticket to sirportly.
+ * @return string Content for the page.
+ */
+function sirportly_ticket_submit() {
+
+  __determine_all_sp_set();
+
+  $token = variable_get('sirportly_api_token', '');
+
+  $secret = variable_get('sirportly_api_secret', '');
+
+  $status = variable_get('sp_ticket_status', '');
+
+  $priority = variable_get('sp_ticket_priority');
+
+  $department = variable_get('sp_ticket_department');
+
+  $company_name = variable_get('company_name', 'us');
+
+  $output = '<p>Need help with something? Fill out the form below and a support request will be sent directly to '.$company_name.'.';
+
+  $output .= render(drupal_get_form('sirportly_ticket_submit_form'));
+
+  return $output;
+
+}
+
+/**
+ * DFAPI Form for the submit page.
+ * @return array Form content.
+ */
+function sirportly_ticket_submit_form() {
+
+  global $user;
+
+  $form['sirportly_name'] = array(
+    '#type' => 'textfield',
+    '#required' => TRUE,
+    '#title' => 'Your name',
+  );
+  $form['sirportly_email'] = array(
+    '#type' => 'textfield',
+    '#required' => TRUE,
+    '#title' => 'Your email',
+    '#description' => t('Defaults to your site email address, but please feel free to provide any.'),
+    '#default_value' => $user->mail,
+  );
+  $form['sirportly_subject'] = array(
+    '#type' => 'textfield',
+    '#maxlength' => 120,
+    '#title' => t('Subject'),
+    '#description' => t("Sum up your issue in a few words."),
+    '#required' => TRUE,
+  );
+  $form['sirportly_message'] = array(
+    '#type' => 'textarea',
+    '#title' => 'Message',
+    '#attributes' => array(
+      'style' => 'width:50%;'
+    ),
+    '#required' => TRUE,
+    '#description' => t('Give a more detailed explanation of your problem.'),
+  );
+  $form['sirportly_submit'] = array(
+    '#type' => 'submit',
+    '#value' => 'Submit',
+  );
+  $form['#validate'] = array(
+    'sirportly_ticket_submit_form_validate'
+  );
+  $form['#submit'] = array(
+    'sirportly_ticket_submit_form_submit'
+  );
+  return $form;
+
+}
+
+/**
+ * Implementation of hook_form_validate()
+ */
+function sirportly_ticket_submit_form_validate($form, &$form_state) {
+  if (!valid_email_address($form_state['values']['sirportly_email'])) {
+    form_set_error('sirportly_email', "Please enter a valid email address.");
+  }
+}
+
+/**
+ * Implementation of hook_form_submit()
+ */
+function sirportly_ticket_submit_form_submit($form, &$form_state) {
+
+  $token = variable_get('sirportly_api_token', '');
+
+  $secret = variable_get('sirportly_api_secret', '');
+
+  $status = variable_get('sp_ticket_status', '');
+
+  $priority = variable_get('sp_ticket_priority');
+
+  $department = variable_get('sp_ticket_department');
+
+  $s = new Sirportly($token, $secret);
+
+  $ticket = array(
+    'department' => $department,
+    'status' => $status,
+    'priority' => $priority,
+    'subject' => $form_state['values']['sirportly_subject'],
+    'name' => $form_state['values']['sirportly_name'],
+    'email' => $form_state['values']['sirportly_email'],
+  );
+
+  // Create the ticket.
+  $create_ticket = $s->create_ticket($ticket);
+
+  // if a reference is received in return, post the message and subject as an update, otherwise, throw an error.
+  if (isset($create_ticket['reference'])) {
+
+    $customer_id = $create_ticket['update']['id'];
+
+    $update = $s->post_update(
+      array(
+        'ticket' => $create_ticket['reference'],
+        'message' => $form_state['values']['sirportly_message'],
+        'subject' => $form_state['values']['sirportly_subject'],
+        'customer' => $create_ticket['customer']['id'],
+      )
+    );
+
+    if (isset($update['id'])) {
+
+      drupal_set_message("Thanks, your ticket was received successfully.");
+
+      global $user;
+
+      $list_key = "Sirportly_ID_list_{$user->uid}";
+
+      $customer_ = variable_get($list_key, array());
+
+      $customer_list[$customer_id] = $customer_id;
+
+      variable_set($list_key, $customer_list);
+
+      drupal_goto(current_path());
+    }
+    else {
+        form_set_error("", "Your ticket could not be submitted due to an unknown error, please try again in 30 seconds.");
+    }
+
+  }
+  else {
+
+    // Ticket was not created, throw error.
+    form_set_error("", "Your ticket could not be submitted due to an unknown error, please try again in 30 seconds.");
+  }
+
+}
+
+/**
+ * Get and cache the data from sirportly for things like priorities, statuses etc.
+ */
+function cache_sirportly_metadata() {
+
+  $token = variable_get('sirportly_api_token', '');
+
+  $secret = variable_get('sirportly_api_secret', '');
+
+  $s = new Sirportly($token, $secret);
+
+  $statuses = variable_get('sirportly_metadata_statuses', null);
+
+  if (!$statuses) {
+    $status_data = $s->statuses();
+    $status_array = array();
+    foreach ($status_data as $status) {
+      $status_array[$status['id']] = $status['name'];
+    }
+    variable_set('sirportly_metadata_statuses', $status_array);
+  }
+
+  $priorities = variable_get('sirportly_metadata_priorities', null);
+
+  if (!$priorities) {
+    $priority_data = $s->priorities();
+    $p_array = array();
+    foreach($priority_data as $priority) {
+      $p_array[$priority['id']] = $priority['name'];
+    }
+    variable_set('sirportly_metadata_priorities', $p_array);
+  }
+
+  $departments = variable_get('sirportly_metadata_departments', null);
+
+  if (!$departments) {
+    $brands = $s->brands();
+    $department_list = array();
+    foreach($brands as $brand) {
+      foreach($brand['departments'] as $department) {
+        $department_list[$department['id']] = $department['name'];
+      }
+    }
+    variable_set('sirportly_metadata_departments', $department_list);
+  }
+}
+
+/**
+ * Lovely dump function.
+ * @param  mixed $var any type of variable to dump
+ */
+function dump($var) {
+  echo '<pre>'.print_r($var,1).'</pre>';
+}
+
+/**
+ * Implementation of hook_flush_caches();
+ * Does not actually return any table names, but uses the invocation to clear the variables we don't want any more out.
+ */
+function sirportly_flush_caches() {
+  db_query("DELETE FROM variable WHERE name LIKE 'sirportly_metadata%'");
+  return array();
+}
+
+// // Set Variable(s)
+// function sirportly_form_submit(&$form, &$form_state) {
+//   variable_set('sirportly_api_key', 'sirportly_api_key');
+// }
