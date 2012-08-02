@@ -12,7 +12,7 @@ class Sirportly
 		$this->url    = $url;
 	}
 
-  private function query($action,$postdata=array()) {
+  public function query($action,$postdata=array()) {
   		$curl = curl_init();
   		$query_string = "";
       foreach ($postdata AS $k=>$v) $query_string .= "$k=".urlencode($v)."&";

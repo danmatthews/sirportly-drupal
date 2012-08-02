@@ -38,7 +38,45 @@ function sirportly_menu() {
       'type' => MENU_LOCAL_ACTION,
     );
 
+    $items['admin/sirportly/view/%'] = array(
+      'title' => 'Support Ticket',
+      'description' => 'Submit a support ticket directly to {{ company_name }} from here.',
+      'page callback' => 'sirportly_ticket_view',
+      'page arguments' => array(3),
+      'access arguments' => array('submit sirportly ticket'),
+      'type' => MENU_CALLBACK,
+    );
+
     return $items;
+}
+
+function sirportly_ticket_view($ticket_id) {
+
+  drupal_add_css(drupal_get_path('module', 'sirportly'). '/sirportly.default.css');
+
+  $token = variable_get('sirportly_api_token', '');
+
+  $secret = variable_get('sirportly_api_secret', '');
+
+  $s = new Sirportly($token, $secret);
+
+  $ticket = $s->ticket($ticket_id);
+
+  drupal_set_title($ticket['subject']);
+
+  // dump($ticket);
+
+  return theme('view_ticket', array(
+    'date' => strtotime($ticket['submitted_at']),
+    'subject' => $ticket['subject'],
+    'message' => $ticket['updates'][0]['message'],
+    'customer' => $ticket['customer'],
+    'email' => $ticket['customer_contact_method']['method_type'] == 'email' ? $ticket['customer_contact_method']['data'] : null,
+    )
+  );
+
+
+
 }
 
 function sirportly_home() {
@@ -49,7 +87,7 @@ function sirportly_home() {
 
   global $user;
 
-  $sirportly_ids = variable_get("Sirportly_ID_list_{$user->uid}", null);
+  $sirportly_ids = variable_get("Sirportly_ID_list_{$user->uid}", array());
 
   if (!$sirportly_ids || count($sirportly_ids) === 0) {
     return 'You have not submitted any tickets to us yet.';
@@ -57,9 +95,71 @@ function sirportly_home() {
 
   $s = new Sirportly($token, $secret);
 
-  $users = $s->tickets(array('customer' => $sirportly_ids[0]));
+  $tickets = array();
 
-  dump($users);
+  foreach ($sirportly_ids as $sid) {
+
+    $users = $s->query('/api/v1/tickets/customer', array('customer' => $sid));
+
+    foreach ($users['records'] as $t) {
+      if ($t['status_type'] == 0) {
+        $tickets[] = $t;
+      }
+
+    }
+
+  }
+
+  // Process the tickets.
+
+  $headers = array(
+    t('Subject'),
+    t('Date Submitted'),
+    t('View'),
+  );
+
+  $rows = array();
+
+  // Sort the tickets
+  usort($tickets, function($a, $b) {
+
+    $timea = strtotime($a['submitted_at']);
+    $timeb = strtotime($b['submitted_at']);
+
+    if($timea < $timeb) {
+      return 1;
+    }
+    else if ($timea > $timeb) {
+      return -1;
+    }
+    else {
+      return 0;
+    }
+
+  });
+
+  foreach ($tickets as $ticket) {
+
+    $rows[] = array(
+      $ticket['subject'],
+      date("jS F Y, H:ia", strtotime($ticket['submitted_at'])),
+      l('View', 'admin/sirportly/view/'.$ticket['reference']),
+    );
+
+  }
+
+  return '<h2>Currently open support tickets</h2>'.theme_table(array(
+    'header' => $headers,
+    'rows' => $rows,
+    'attributes' => array(),
+    'caption' => '',
+    'colgroups' => array(),
+    'sticky' => FALSE,
+    'empty' => TRUE,
+    'attributes' => array(
+    'id' => 'sirportly-tickets'
+    )
+  ));
 
 }
 
@@ -74,6 +174,18 @@ function sirportly_permission() {
     'submit sirportly ticket' => array(
       'title' => t('Submit support tickets using the Sirportly module'),
     ),
+  );
+}
+
+/**
+ * Implementation of hook_theme()
+ */
+function sirportly_theme() {
+  return array(
+    'view_ticket' => array(
+      'template' => 'view-ticket',
+      'variables' => array('message' => NULL, 'subject' => NULL, 'meta' => NULL, 'date' => NULL)
+    )
   );
 }
 
@@ -302,7 +414,7 @@ function sirportly_ticket_submit_form_submit($form, &$form_state) {
   // if a reference is received in return, post the message and subject as an update, otherwise, throw an error.
   if (isset($create_ticket['reference'])) {
 
-    $customer_id = $create_ticket['update']['id'];
+    $customer_id = $create_ticket['customer']['id'];
 
     $update = $s->post_update(
       array(
@@ -321,13 +433,13 @@ function sirportly_ticket_submit_form_submit($form, &$form_state) {
 
       $list_key = "Sirportly_ID_list_{$user->uid}";
 
-      $customer_ = variable_get($list_key, array());
+      $customer_list = variable_get($list_key, null);
 
       $customer_list[$customer_id] = $customer_id;
 
       variable_set($list_key, $customer_list);
 
-      drupal_goto(current_path());
+      drupal_goto('admin/sirportly');
     }
     else {
         form_set_error("", "Your ticket could not be submitted due to an unknown error, please try again in 30 seconds.");
