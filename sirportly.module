@@ -66,7 +66,7 @@ function sirportly_ticket_view($ticket_id) {
 
   // dump($ticket);
 
-  return theme('view_ticket', array(
+return theme('view_ticket', array(
     'date' => strtotime($ticket['submitted_at']),
     'subject' => $ticket['subject'],
     'message' => $ticket['updates'][0]['message'],
@@ -148,7 +148,7 @@ function sirportly_home() {
 
   }
 
-  return '<h2>Currently open support tickets</h2>'.theme_table(array(
+  $ticket_table = theme_table(array(
     'header' => $headers,
     'rows' => $rows,
     'attributes' => array(),
@@ -160,6 +160,14 @@ function sirportly_home() {
     'id' => 'sirportly-tickets'
     )
   ));
+
+  $kbs = variable_get('sp_active_knowledgebase', array());
+
+  foreach ($kbs as $key => $kbid) {
+   $kbs[$key] = $s->kb($kbid);
+  }
+
+  return theme('sp_support_page', array('ticket_table' => $ticket_table, 'knowledge_bases' => $kbs));
 
 }
 
@@ -185,7 +193,14 @@ function sirportly_theme() {
     'view_ticket' => array(
       'template' => 'view-ticket',
       'variables' => array('message' => NULL, 'subject' => NULL, 'meta' => NULL, 'date' => NULL)
-    )
+    ),
+    'sp_support_page' => array(
+      'template' => 'sp-support-page',
+      'vars' => array(
+        'tickets' => NULL,
+        'knowledge_bases' => NULL,
+      ),
+    ),
   );
 }
 
@@ -223,23 +238,6 @@ function sirportly_admin() {
     '#required' => TRUE,
   );
 
-  // Support information, name etc.
-
-  $form['support_information'] = array(
-    '#type' => 'fieldset',
-    '#title' => 'Support information',
-    '#collapsible' => FALSE,
-    '#collapsed' => FALSE,
-  );
-
-  $form['support_information']['company_name'] = array(
-    '#type' => 'textfield',
-    '#title' => 'Company Name',
-    '#description' => t('Add the name of your company, or the company who handles support requests, here.'),
-    '#required' => TRUE,
-    '#default_value' => variable_get('company_name', ''),
-  );
-
   // Ticket routing information.
 
   $form['ticket_information'] = array(
@@ -273,6 +271,22 @@ function sirportly_admin() {
     '#default_value' => variable_get('sp_ticket_department'),
   );
 
+  // Knowledgebase stuff.
+
+  $form['sp_knowledgebases'] = array(
+    '#title' => t('knowledgebases'),
+    '#description' => t('Make your Sirportly knowledgebases visible in the support section.'),
+    '#type' => 'fieldset',
+  );
+
+  $form['sp_knowledgebases']['sp_active_knowledgebase'] = array(
+    '#type' => 'checkboxes',
+    '#options' => variable_get('sirportly_metadata_knowledgebases', array()),
+    '#title' => t('Active knowledgebases'),
+    '#description' => t('Active knowledgebases will be visible to site users'),
+    '#default_value' => variable_get('sp_active_knowledgebase'),
+  );
+
   return system_settings_form($form);
 
 }
@@ -287,7 +301,13 @@ function __determine_all_sp_set() {
 
   $secret = variable_get('sirportly_api_secret', null);
 
-  $test = (is_string($token) && is_string($secret)) ? TRUE : FALSE;
+  $status = variable_get('sp_ticket_status', null);
+
+  $priority = variable_get('sp_ticket_priority', null);
+
+  $department = variable_get('sp_ticket_department', null);
+
+  $test = (is_string($token) && is_string($secret)) && $status && $priority && $department ? TRUE : FALSE;
 
   if (!$test) {
     drupal_set_message('Not all of the required credentials have been set in order to use the Sirportly module, please <a href="">configure</a> then now.', 'error');
@@ -465,6 +485,22 @@ function cache_sirportly_metadata() {
 
   $s = new Sirportly($token, $secret);
 
+  $kbs = variable_get('sirportly_metadata_knowledgebases', null);
+
+  if (!$kbs) {
+
+    $kb_list = array();
+
+    $kbs = $s->kb_list();
+
+    foreach ($kbs as $kb) {
+      $kb_list[$kb['id']] = $kb['name'];
+    }
+
+    variable_set('sirportly_metadata_knowledgebases', $kb_list);
+
+  }
+
   $statuses = variable_get('sirportly_metadata_statuses', null);
 
   if (!$statuses) {
@@ -494,7 +530,7 @@ function cache_sirportly_metadata() {
     $department_list = array();
     foreach($brands as $brand) {
       foreach($brand['departments'] as $department) {
-        $department_list[$department['id']] = $department['name'];
+        $department_list[$department['id']] = $department['name'].' ('.$brand['name'].')';
       }
     }
     variable_set('sirportly_metadata_departments', $department_list);
@@ -517,8 +553,3 @@ function sirportly_flush_caches() {
   db_query("DELETE FROM variable WHERE name LIKE 'sirportly_metadata%'");
   return array();
 }
-
-// // Set Variable(s)
-// function sirportly_form_submit(&$form, &$form_state) {
-//   variable_set('sirportly_api_key', 'sirportly_api_key');
-// }

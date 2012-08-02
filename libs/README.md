@@ -17,7 +17,7 @@ you need to post your initial update using `post_update` on your newly created t
 ```php
 # Create the skeleton ticket
 $properties = array(
-    'brand' => 'Sirportly', 
+    'brand' => 'Sirportly',
     'department' => 'Sales Enquiries',
     'status' => 'New',
     'priority' => 'Normal',
@@ -25,7 +25,7 @@ $properties = array(
     'name' => 'My New Customer',
     'email' => 'customer@atechmedia.com',
     );
-    
+
   $ticket = $sirportly->create_ticket($properties);
 
 # Now add the first update to this ticket
@@ -40,15 +40,15 @@ for more information about the options available.
 ## Accessing Tickets
 
 ```php
-$sirportly->tickets();                   
-$sirportly->ticket(array('reference' => 'AB-123123');      
+$sirportly->tickets();
+$sirportly->ticket(array('reference' => 'AB-123123');
 ```
 
 ## Changing ticket properties
 
 If you wish to change properties of a ticket, you can use `update_ticket`. This function behaves
-exactly the same as the corresponding API method and further details can be found in the 
-[documentation](https://atech.sirportly.com/knowledge/4/api-specification/tickets/changing-ticket-properties). 
+exactly the same as the corresponding API method and further details can be found in the
+[documentation](https://atech.sirportly.com/knowledge/4/api-specification/tickets/changing-ticket-properties).
 
 
 ```PHP
@@ -87,7 +87,7 @@ $sirportly->post_update(array('ticket' => 'GI-857090', 'message' => 'Private Msg
 
 If you wish to execute one of your macros on a ticket, you can use the `run_macro` function
 which accepts the ID or name of the macro you wish to execute. If executed successfully,
-it will return true and the original ticket properties will be updated. 
+it will return true and the original ticket properties will be updated.
 
 ```php
 $sirportly->run_macro( array('ticket' => 'GI-857090', 'macro' => 'Mark as waiting for staff') );
@@ -102,7 +102,7 @@ $sirportly->add_follow_up( array('ticket' => 'GI-857090', 'actor' => 'Daniel', '
 ```
 
 The `run_at` attribute should be a timestamp as outlined on our
-[date/time formatting page](http://www.sirportly.com/docs/api-specification/date-time-formatting) in 
+[date/time formatting page](http://www.sirportly.com/docs/api-specification/date-time-formatting) in
 the API documentation.
 
 ## Creating a user
@@ -111,10 +111,10 @@ You can create users (staff members) via the API.
 
 ```php
 $user_properties = array(
-    'first_name' => 'John', 
-    'first_name' => 'Particle', 
-    'email_address' => 'john@testcompany.com', 
-    'admin_access' => true, 
+    'first_name' => 'John',
+    'first_name' => 'Particle',
+    'email_address' => 'john@testcompany.com',
+    'admin_access' => true,
     );
 
 $sirportly->create_user($user_properties);
@@ -127,7 +127,7 @@ You do not need to create individual customers. These are created automatically 
 ## Accessing Static Data Objects
 
 The Sirportly API provides access to all the data objects stored in your Sirportly database.
-At the current time, these cannot be edited through the API. 
+At the current time, these cannot be edited through the API.
 
 ```PHP
 $sirportly->statuses();
