@@ -8,7 +8,7 @@
 	<ul>
 	<?php foreach($knowledge_bases as $knowledge) : ?>
 
-		<li><?php print l($knowledge['name'], 'admin/sirportly/knowledge/view/'.$knowledge['id']) ?></li>
+		<li><?php print l($knowledge[1], 'admin/sirportly/knowledge/view/'.$knowledge[0]) ?></li>
 
 	<?php endforeach; ?>
 	</ul>

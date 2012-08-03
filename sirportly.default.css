@@ -2,37 +2,6 @@ p.ticket-recieved {
 	font-weight:bold;
 	text-align: center;
 }
-.first-update {
-	position: relative;
-	background: #f5f5f5;
-	border: 1px solid #cccccc;
-	-webkit-border-radius: 3px;
-	-moz-border-radius: 3px;
-	border-radius: 3px;
-	padding:20px;
-}
-.first-update:after, .first-update:before {
-	bottom: 100%;
-	border: solid transparent;
-	content: " ";
-	height: 0;
-	width: 0;
-	position: absolute;
-	pointer-events: none;
-}
-
-.first-update:after {
-	border-bottom-color: #f5f5f5;
-	border-width: 10px;
-	left: 50%;
-	margin-left: -10px;
-}
-.first-update:before {
-	border-bottom-color: #cccccc;
-	border-width: 11px;
-	left: 50%;
-	margin-left: -11px;
-}
 
 table#ticket-info tr td {
 	border:1px solid #ccc;
@@ -42,4 +11,15 @@ table#ticket-info tr td.label {
 	width:15%;
 	background:#E0E0D8;
 	font-weight:bold;
+}
+
+#sp-kb-content {
+	margin:0px 280px 0px 0px;
+}
+
+#sp-menu-right {
+	width:200px;
+	float:right;
+	padding:19px;
+	border:1px solid #ccc;
 }

@@ -135,6 +135,9 @@ class Sirportly
       return $this->query('/api/v1/knowledge/tree', array('kb' => $kb_id));
     }
 
-
+    public function kb_page($kb_id, $path) {
+      return $this->query('/api/v1/knowledge/page', array('kb' => $kb_id, 'path' => $path));
+    }
+    
 }
 ?>
