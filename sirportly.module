@@ -599,6 +599,7 @@ function sirportly_kb_view($kb_id) {
   else {
     $kbp = $s->kb_page($kb_id, '');
   }
+  drupal_set_title($kbp['page']['title']);
   $menu = sp_recurseMenuItems($kb);
 
   return theme('knowledgebase_page', array(
@@ -613,16 +614,20 @@ function sp_recurseMenuItems($menu, $link_base = null) {
 
   foreach ($menu as $m) {
 
-    if (!isset($link_base)) {
-      $output .= '<li>'.l($m['title'], 'admin/sirportly/knowledge/view/'.arg(4)).'</li>';
+    $output .= '<li>';
+
+    if (!isset($link_base) && !$m['full_permalink']) {
+      $output .= l($m['title'], 'admin/sirportly/knowledge/view/'.arg(4));
     }
     else {
-      $output .= '<li>'.l($m['title'], 'admin/sirportly/knowledge/view/'.arg(4), array('query' => array('p' => (isset($link_base) ? $link_base.'/' : '').$m['full_permalink']))).'</li>';
+      $output .= l($m['title'], 'admin/sirportly/knowledge/view/'.arg(4), array('query' => array('p' => (isset($link_base) ? $link_base.'/' : '').$m['full_permalink'])));
     }
 
     if (isset($m['children'])) {
           $output .= sp_recurseMenuItems($m['children'], $m['permalink']);
     }
+
+    $output .= '</li>';
 
   }
 
