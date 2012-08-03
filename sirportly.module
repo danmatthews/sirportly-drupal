@@ -15,8 +15,8 @@ define('SIRPORTLY_API_URL', 'https://api.sirportly.com/');
  */
 function sirportly_init() {
 
-  if (variable_get('sp_enable_styling', null)) {
-    drupal_add_css(drupal_get_path('module', 'sirportly'). '/sirportly.default.css');
+  if (variable_get('sp_enable_styling', NULL)) {
+    drupal_add_css(drupal_get_path('module', 'sirportly') . '/sirportly.default.css');
   }
 
 }
@@ -90,7 +90,7 @@ return theme('view_ticket', array(
     'subject' => $ticket['subject'],
     'message' => $ticket['updates'][0]['message'],
     'customer' => $ticket['customer'],
-    'email' => $ticket['customer_contact_method']['method_type'] == 'email' ? $ticket['customer_contact_method']['data'] : null,
+    'email' => $ticket['customer_contact_method']['method_type'] == 'email' ? $ticket['customer_contact_method']['data'] : NULL,
     )
   );
 
@@ -145,10 +145,10 @@ function sirportly_home() {
     $timea = strtotime($a['submitted_at']);
     $timeb = strtotime($b['submitted_at']);
 
-    if($timea < $timeb) {
+    if ($timea < $timeb) {
       return 1;
     }
-    else if ($timea > $timeb) {
+    elseif ($timea > $timeb) {
       return -1;
     }
     else {
@@ -162,7 +162,7 @@ function sirportly_home() {
     $rows[] = array(
       $ticket['subject'],
       date("jS F Y, H:ia", strtotime($ticket['submitted_at'])),
-      l('View', 'admin/sirportly/view/'.$ticket['reference']),
+      l('View', 'admin/sirportly/view/' . $ticket['reference']),
     );
 
   }
@@ -244,7 +244,7 @@ function sirportly_admin() {
 
   $form = array();
 
-  $collapsed = is_string(variable_get('sirportly_api_token', null)) && is_string(variable_get('sirportly_api_secret', null)) ? TRUE : FALSE;
+  $collapsed = is_string(variable_get('sirportly_api_token', NULL)) && is_string(variable_get('sirportly_api_secret', NULL)) ? TRUE : FALSE;
 
   $form['sirportly_account'] = array(
     '#type' => 'fieldset',
@@ -343,20 +343,20 @@ function sirportly_admin() {
  */
 function __determine_all_sp_set() {
 
-  $token = variable_get('sirportly_api_token', null);
+  $token = variable_get('sirportly_api_token', NULL);
 
-  $secret = variable_get('sirportly_api_secret', null);
+  $secret = variable_get('sirportly_api_secret', NULL);
 
-  $status = variable_get('sp_ticket_status', null);
+  $status = variable_get('sp_ticket_status', NULL);
 
-  $priority = variable_get('sp_ticket_priority', null);
+  $priority = variable_get('sp_ticket_priority', NULL);
 
-  $department = variable_get('sp_ticket_department', null);
+  $department = variable_get('sp_ticket_department', NULL);
 
   $test = (is_string($token) && is_string($secret)) && $status && $priority && $department ? TRUE : FALSE;
 
   if (!$test) {
-    drupal_set_message('Not all of the required credentials have been set in order to use the Sirportly module, please <a href="">configure</a> then now.', 'error');
+    drupal_set_message(t('Not all of the required credentials have been set in order to use the Sirportly module, please <a href="">configure</a> then now.'), 'error');
   }
 
 }
@@ -381,7 +381,7 @@ function sirportly_ticket_submit() {
 
   $company_name = variable_get('company_name', 'us');
 
-  $output = '<p>Need help with something? Fill out the form below and a support request will be sent directly to '.$company_name.'.';
+  $output = '<p>Need help with something? Fill out the form below and a support request will be sent directly to ' . $company_name . '.';
 
   $output .= render(drupal_get_form('sirportly_ticket_submit_form'));
 
@@ -493,13 +493,13 @@ function sirportly_ticket_submit_form_submit($form, &$form_state) {
 
     if (isset($update['id'])) {
 
-      drupal_set_message("Thanks, your ticket was received successfully.");
+      drupal_set_message(t("Thanks, your ticket was received successfully."));
 
       global $user;
 
       $list_key = "Sirportly_ID_list_{$user->uid}";
 
-      $customer_list = variable_get($list_key, null);
+      $customer_list = variable_get($list_key, NULL);
 
       $customer_list[$customer_id] = $customer_id;
 
@@ -531,7 +531,7 @@ function cache_sirportly_metadata() {
 
   $s = new Sirportly($token, $secret);
 
-  $kbs = variable_get('sirportly_metadata_knowledgebases', null);
+  $kbs = variable_get('sirportly_metadata_knowledgebases', NULL);
 
   if (!$kbs) {
 
@@ -540,14 +540,14 @@ function cache_sirportly_metadata() {
     $kbs = $s->kb_list();
 
     foreach ($kbs as $kb) {
-      $kb_list[$kb['id'].':'.$kb['name']] = $kb['name'];
+      $kb_list[$kb['id'] . ':' . $kb['name']] = $kb['name'];
     }
 
     variable_set('sirportly_metadata_knowledgebases', $kb_list);
 
   }
 
-  $statuses = variable_get('sirportly_metadata_statuses', null);
+  $statuses = variable_get('sirportly_metadata_statuses', NULL);
 
   if (!$statuses) {
     $status_data = $s->statuses();
@@ -558,25 +558,25 @@ function cache_sirportly_metadata() {
     variable_set('sirportly_metadata_statuses', $status_array);
   }
 
-  $priorities = variable_get('sirportly_metadata_priorities', null);
+  $priorities = variable_get('sirportly_metadata_priorities', NULL);
 
   if (!$priorities) {
     $priority_data = $s->priorities();
     $p_array = array();
-    foreach($priority_data as $priority) {
+    foreach ($priority_data as $priority) {
       $p_array[$priority['id']] = $priority['name'];
     }
     variable_set('sirportly_metadata_priorities', $p_array);
   }
 
-  $departments = variable_get('sirportly_metadata_departments', null);
+  $departments = variable_get('sirportly_metadata_departments', NULL);
 
   if (!$departments) {
     $brands = $s->brands();
     $department_list = array();
-    foreach($brands as $brand) {
-      foreach($brand['departments'] as $department) {
-        $department_list[$department['id']] = $department['name'].' ('.$brand['name'].')';
+    foreach ($brands as $brand) {
+      foreach ($brand['departments'] as $department) {
+        $department_list[$department['id']] = $department['name'] . ' ('.$brand['name'].')';
       }
     }
     variable_set('sirportly_metadata_departments', $department_list);
@@ -608,7 +608,7 @@ function sirportly_kb_view($kb_id) {
   ));
 }
 
-function sp_recurseMenuItems($menu, $link_base = null) {
+function sp_recurseMenuItems($menu, $link_base = NULL) {
 
   $output = '<ul>';
 
@@ -620,7 +620,7 @@ function sp_recurseMenuItems($menu, $link_base = null) {
       $output .= l($m['title'], 'admin/sirportly/knowledge/view/'.arg(4));
     }
     else {
-      $output .= l($m['title'], 'admin/sirportly/knowledge/view/'.arg(4), array('query' => array('p' => (isset($link_base) ? $link_base.'/' : '').$m['full_permalink'])));
+      $output .= l($m['title'], 'admin/sirportly/knowledge/view/'.arg(4), array('query' => array('p' => (isset($link_base) ? $link_base.'/' : '') . $m['full_permalink'])));
     }
 
     if (isset($m['children'])) {
@@ -650,6 +650,6 @@ function dump($var) {
  * Does not actually return any table names, but uses the invocation to clear the variables we don't want any more out.
  */
 function sirportly_flush_caches() {
-  db_query("DELETE FROM variable WHERE name LIKE 'sirportly_metadata%'");
+  db_query("DELETE FROM {variable} WHERE name LIKE 'sirportly_metadata%'");
   return array();
 }
