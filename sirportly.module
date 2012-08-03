@@ -1,17 +1,18 @@
 <?php
 
 /**
+ * @file
  * Module that plugs in Sirportly functionality to your Drupal web site.
  * For Sirportly information see: http://sirportly.com
  */
 
-include_once('libs/class.php');
-include_once('libs/markdown.php');
+include_once 'libs/class.php';
+include_once 'libs/markdown.php';
 
 define('SIRPORTLY_API_URL', 'https://api.sirportly.com/');
 
 /**
- * Implementation of hook_init()
+ * Implements hook_init().
  */
 function sirportly_init() {
 
@@ -22,55 +23,64 @@ function sirportly_init() {
 }
 
 /**
- * Implementation of hook_menu()
+ * Implements hook_menu().
  */
 function sirportly_menu() {
 
-    $items['admin/config/services/sirportly'] = array(
-      'title' => 'Sirportly API Settings',
-      'description' => 'Connects to the Sirportly API',
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('sirportly_admin'),
-      'access arguments' => array('administer sirportly'),
-      'type' => MENU_NORMAL_ITEM,
-    );
+  $items['admin/config/services/sirportly'] = array(
+    'title' => 'Sirportly API Settings',
+    'description' => 'Connects to the Sirportly API',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('sirportly_admin'),
+    'access arguments' => array('administer sirportly'),
+    'type' => MENU_NORMAL_ITEM,
+  );
 
-    $items['admin/sirportly'] = array(
-      'title' => 'Support',
-      'access arguments' => array('submit sirportly ticket'),
-      'page callback' => 'sirportly_home',
-      'type' => MENU_NORMAL_ITEM
-    );
+  $items['admin/sirportly'] = array(
+    'title' => 'Support',
+    'access arguments' => array('submit sirportly ticket'),
+    'page callback' => 'sirportly_home',
+    'type' => MENU_NORMAL_ITEM,
+  );
 
-    $items['admin/sirportly/submit'] = array(
-      'title' => 'Submit a support ticket',
-      'description' => 'Submit a support ticket directly to {{ company_name }} from here.',
-      'page callback' => 'sirportly_ticket_submit',
-      'access arguments' => array('submit sirportly ticket'),
-      'type' => MENU_LOCAL_ACTION,
-    );
+  $items['admin/sirportly/submit'] = array(
+    'title' => 'Submit a support ticket',
+    'description' => 'Submit a support ticket directly to {{ company_name }} from here.',
+    'page callback' => 'sirportly_ticket_submit',
+    'access arguments' => array('submit sirportly ticket'),
+    'type' => MENU_LOCAL_ACTION,
+  );
 
-    $items['admin/sirportly/view/%'] = array(
-      'title' => 'Support Ticket',
-      'description' => 'Submit a support ticket directly to {{ company_name }} from here.',
-      'page callback' => 'sirportly_ticket_view',
-      'page arguments' => array(3),
-      'access arguments' => array('submit sirportly ticket'),
-      'type' => MENU_CALLBACK,
-    );
+  $items['admin/sirportly/view/%'] = array(
+    'title' => 'Support Ticket',
+    'description' => 'Submit a support ticket directly to {{ company_name }} from here.',
+    'page callback' => 'sirportly_ticket_view',
+    'page arguments' => array(3),
+    'access arguments' => array('submit sirportly ticket'),
+    'type' => MENU_CALLBACK,
+  );
 
-    $items['admin/sirportly/knowledge/view/%'] = array(
-      'title' => 'Knowledgebase',
-      'description' => 'Submit a support ticket directly to {{ company_name }} from here.',
-      'page callback' => 'sirportly_kb_view',
-      'page arguments' => array(4),
-      'access arguments' => array('submit sirportly ticket'),
-      'type' => MENU_CALLBACK,
-    );
+  $items['admin/sirportly/knowledge/view/%'] = array(
+    'title' => 'Knowledgebase',
+    'description' => 'Submit a support ticket directly to {{ company_name }} from here.',
+    'page callback' => 'sirportly_kb_view',
+    'page arguments' => array(4),
+    'access arguments' => array('submit sirportly ticket'),
+    'type' => MENU_CALLBACK,
+  );
 
-    return $items;
+  return $items;
 }
 
+/**
+ * View a single ticket.
+ *
+ * @param int $ticket_id
+ *   ID of the ticket to view
+ *
+ * @return string
+ *   The return string to render as output.
+ */
 function sirportly_ticket_view($ticket_id) {
 
   $token = variable_get('sirportly_api_token', '');
@@ -83,9 +93,7 @@ function sirportly_ticket_view($ticket_id) {
 
   drupal_set_title($ticket['subject']);
 
-  // dump($ticket);
-
-return theme('view_ticket', array(
+  return theme('view_ticket', array(
     'date' => strtotime($ticket['submitted_at']),
     'subject' => $ticket['subject'],
     'message' => $ticket['updates'][0]['message'],
@@ -94,10 +102,11 @@ return theme('view_ticket', array(
     )
   );
 
-
-
 }
 
+/**
+ * Sirportly dashboard tab.
+ */
 function sirportly_home() {
 
   $token = variable_get('sirportly_api_token', '');
@@ -130,7 +139,6 @@ function sirportly_home() {
   }
 
   // Process the tickets.
-
   $headers = array(
     t('Subject'),
     t('Date Submitted'),
@@ -139,30 +147,15 @@ function sirportly_home() {
 
   $rows = array();
 
-  // Sort the tickets
-  usort($tickets, function($a, $b) {
-
-    $timea = strtotime($a['submitted_at']);
-    $timeb = strtotime($b['submitted_at']);
-
-    if ($timea < $timeb) {
-      return 1;
-    }
-    elseif ($timea > $timeb) {
-      return -1;
-    }
-    else {
-      return 0;
-    }
-
-  });
+  // Sort the tickets.
+  usort($tickets, 'sp_sort_ticket_array');
 
   foreach ($tickets as $ticket) {
 
     $rows[] = array(
       $ticket['subject'],
       date("jS F Y, H:ia", strtotime($ticket['submitted_at'])),
-      l('View', 'admin/sirportly/view/' . $ticket['reference']),
+      l(t('View'), 'admin/sirportly/view/' . $ticket['reference']),
     );
 
   }
@@ -177,9 +170,10 @@ function sirportly_home() {
       'sticky' => FALSE,
       'empty' => TRUE,
       'attributes' => array(
-        'id' => 'sirportly-tickets'
+        'id' => 'sirportly-tickets',
+      ),
       )
-    ));
+    );
   }
   else {
     $ticket_table = '<p class="no-results-tickets">No Tickets To Show</p>';
@@ -188,20 +182,43 @@ function sirportly_home() {
   $kbs = variable_get('sp_active_knowledgebase', array());
 
   foreach ($kbs as $key => $kbid) {
-   $kbs[$key] = explode(":", $kbid);
+    $kbs[$key] = explode(":", $kbid);
   }
 
-  return theme('sp_support_page', array('ticket_table' => $ticket_table, 'knowledge_bases' => $kbs));
+  return theme('sp_support_page', array(
+    'ticket_table' => $ticket_table,
+    'knowledge_bases' => $kbs)
+  );
+
+}
+/**
+ * USORT callback function.
+ */
+function sp_sort_ticket_array($a, $b) {
+
+  $timea = strtotime($a['submitted_at']);
+
+  $timeb = strtotime($b['submitted_at']);
+
+  if ($timea < $timeb) {
+    return 1;
+  }
+  elseif ($timea > $timeb) {
+    return -1;
+  }
+  else {
+    return 0;
+  }
 
 }
 
 /**
- * Implementation of hook_permission
+ * Implements hook_permission().
  */
 function sirportly_permission() {
   return array(
     'administer sirportly' => array(
-      'title' => t('Administer Sirtportly')
+      'title' => t('Administer Sirtportly'),
     ),
     'submit sirportly ticket' => array(
       'title' => t('Submit support tickets using the Sirportly module'),
@@ -210,13 +227,18 @@ function sirportly_permission() {
 }
 
 /**
- * Implementation of hook_theme()
+ * Implements hook_theme().
  */
 function sirportly_theme() {
   return array(
     'view_ticket' => array(
       'template' => 'view-ticket',
-      'variables' => array('message' => NULL, 'subject' => NULL, 'meta' => NULL, 'date' => NULL)
+      'variables' => array(
+        'message' => NULL,
+        'subject' => NULL,
+        'meta' => NULL,
+        'date' => NULL,
+      ),
     ),
     'sp_support_page' => array(
       'template' => 'sp-support-page',
@@ -230,16 +252,18 @@ function sirportly_theme() {
       'vars' => array(
         'menu' => NULL,
         'content' => NULL,
-      )
+      ),
     ),
   );
 }
 
-// Create the form
+/**
+ * Create the form.
+ */
 function sirportly_admin() {
 
-  // Check that the needed metadata is there, and if not, download it and store it.
-
+  // Check that the needed metadata is there,
+  // and if not, download it and store it.
   cache_sirportly_metadata();
 
   $form = array();
@@ -270,7 +294,6 @@ function sirportly_admin() {
   );
 
   // Ticket routing information.
-
   $form['ticket_information'] = array(
     '#type' => 'fieldset',
     '#title' => 'Department & Brand information',
@@ -282,7 +305,7 @@ function sirportly_admin() {
     '#options' => variable_get('sirportly_metadata_priorities'),
     '#title' => 'Submitted ticket priority',
     '#required' => TRUE,
-    '#default_value' => variable_get('sp_ticket_priority')
+    '#default_value' => variable_get('sp_ticket_priority'),
   );
 
   $form['ticket_information']['sp_ticket_status'] = array(
@@ -303,7 +326,6 @@ function sirportly_admin() {
   );
 
   // Knowledgebase stuff.
-
   $form['sp_knowledgebases'] = array(
     '#title' => t('knowledgebases'),
     '#description' => t('Make your Sirportly knowledgebases visible in the support section.'),
@@ -319,7 +341,6 @@ function sirportly_admin() {
   );
 
   // Styling.
-
   $form['sp_styling'] = array(
     '#title' => t('Default Styles'),
     '#type' => 'fieldset',
@@ -339,7 +360,9 @@ function sirportly_admin() {
 
 /**
  * Determine if all the neccessary settings have been set.
- * @return bool True if all settings are ok, false if not.
+ *
+ * @return bool
+ *   True if all settings are ok, false if not.
  */
 function __determine_all_sp_set() {
 
@@ -363,7 +386,9 @@ function __determine_all_sp_set() {
 
 /**
  * Menu callback to allow you to submit a ticket to sirportly.
- * @return string Content for the page.
+ *
+ * @return string
+ *   Content for the page.
  */
 function sirportly_ticket_submit() {
 
@@ -391,7 +416,9 @@ function sirportly_ticket_submit() {
 
 /**
  * DFAPI Form for the submit page.
- * @return array Form content.
+ *
+ * @return array
+ *   Form content.
  */
 function sirportly_ticket_submit_form() {
 
@@ -420,7 +447,7 @@ function sirportly_ticket_submit_form() {
     '#type' => 'textarea',
     '#title' => 'Message',
     '#attributes' => array(
-      'style' => 'width:50%;'
+      'style' => 'width:50%;',
     ),
     '#required' => TRUE,
     '#description' => t('Give a more detailed explanation of your problem.'),
@@ -430,17 +457,17 @@ function sirportly_ticket_submit_form() {
     '#value' => 'Submit',
   );
   $form['#validate'] = array(
-    'sirportly_ticket_submit_form_validate'
+    'sirportly_ticket_submit_form_validate',
   );
   $form['#submit'] = array(
-    'sirportly_ticket_submit_form_submit'
+    'sirportly_ticket_submit_form_submit',
   );
   return $form;
 
 }
 
 /**
- * Implementation of hook_form_validate()
+ * Implements hook_form_validate().
  */
 function sirportly_ticket_submit_form_validate($form, &$form_state) {
   if (!valid_email_address($form_state['values']['sirportly_email'])) {
@@ -449,7 +476,7 @@ function sirportly_ticket_submit_form_validate($form, &$form_state) {
 }
 
 /**
- * Implementation of hook_form_submit()
+ * Implements hook_form_submit().
  */
 function sirportly_ticket_submit_form_submit($form, &$form_state) {
 
@@ -477,7 +504,8 @@ function sirportly_ticket_submit_form_submit($form, &$form_state) {
   // Create the ticket.
   $create_ticket = $s->create_ticket($ticket);
 
-  // if a reference is received in return, post the message and subject as an update, otherwise, throw an error.
+  // If a reference is received in return, post the message and
+  // subject as an update, otherwise, throw an error.
   if (isset($create_ticket['reference'])) {
 
     $customer_id = $create_ticket['customer']['id'];
@@ -508,7 +536,7 @@ function sirportly_ticket_submit_form_submit($form, &$form_state) {
       drupal_goto('admin/sirportly');
     }
     else {
-        form_set_error("", "Your ticket could not be submitted due to an unknown error, please try again in 30 seconds.");
+      form_set_error("", "Your ticket could not be submitted due to an unknown error, please try again in 30 seconds.");
     }
 
   }
@@ -521,7 +549,7 @@ function sirportly_ticket_submit_form_submit($form, &$form_state) {
 }
 
 /**
- * Get and cache the data from sirportly for things like priorities, statuses etc.
+ * Get and cache the data from sirportly.
  */
 function cache_sirportly_metadata() {
 
@@ -576,13 +604,16 @@ function cache_sirportly_metadata() {
     $department_list = array();
     foreach ($brands as $brand) {
       foreach ($brand['departments'] as $department) {
-        $department_list[$department['id']] = $department['name'] . ' ('.$brand['name'].')';
+        $department_list[$department['id']] = $department['name'] . ' (' . $brand['name'] . ')';
       }
     }
     variable_set('sirportly_metadata_departments', $department_list);
   }
 }
 
+/**
+ * View a single knowledgebase article.
+ */
 function sirportly_kb_view($kb_id) {
 
   $token = variable_get('sirportly_api_token', '');
@@ -608,6 +639,9 @@ function sirportly_kb_view($kb_id) {
   ));
 }
 
+/**
+ * Recursively output the menu array into a HTML menu.
+ */
 function sp_recurseMenuItems($menu, $link_base = NULL) {
 
   $output = '<ul>';
@@ -617,14 +651,14 @@ function sp_recurseMenuItems($menu, $link_base = NULL) {
     $output .= '<li>';
 
     if (!isset($link_base) && !$m['full_permalink']) {
-      $output .= l($m['title'], 'admin/sirportly/knowledge/view/'.arg(4));
+      $output .= l($m['title'], 'admin/sirportly/knowledge/view/' . arg(4));
     }
     else {
-      $output .= l($m['title'], 'admin/sirportly/knowledge/view/'.arg(4), array('query' => array('p' => (isset($link_base) ? $link_base.'/' : '') . $m['full_permalink'])));
+      $output .= l($m['title'], 'admin/sirportly/knowledge/view/' . arg(4), array('query' => array('p' => (isset($link_base) ? $link_base . '/' : '') . $m['full_permalink'])));
     }
 
     if (isset($m['children'])) {
-          $output .= sp_recurseMenuItems($m['children'], $m['permalink']);
+      $output .= sp_recurseMenuItems($m['children'], $m['permalink']);
     }
 
     $output .= '</li>';
@@ -639,15 +673,19 @@ function sp_recurseMenuItems($menu, $link_base = NULL) {
 
 /**
  * Lovely dump function.
- * @param  mixed $var any type of variable to dump
+ *
+ * @param mixed $var
+ *   any type of variable to dump
  */
 function dump($var) {
-  echo '<pre>'.print_r($var,1).'</pre>';
+  echo '<pre>' . print_r($var, 1) . '</pre>';
 }
 
 /**
- * Implementation of hook_flush_caches();
- * Does not actually return any table names, but uses the invocation to clear the variables we don't want any more out.
+ * Implements hook_flush_caches().
+ *
+ * Does not actually return any table names, but uses the invocation
+ * to clear the variables we don't want any more out.
  */
 function sirportly_flush_caches() {
   db_query("DELETE FROM {variable} WHERE name LIKE 'sirportly_metadata%'");

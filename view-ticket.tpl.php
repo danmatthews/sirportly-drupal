@@ -1,3 +1,12 @@
+<?php
+
+/**
+ * @file
+ * Template for a single ticket.
+ */
+
+?>
+
 <p class="ticket-recieved">The following ticket was received at <?php print date("jS F Y", $date); ?> at <?php print date("H:ia", $date) ?>:</p>
 
 <table id="ticket-info">
