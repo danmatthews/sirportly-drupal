@@ -36,19 +36,33 @@ function sirportly_menu() {
     'type' => MENU_NORMAL_ITEM,
   );
 
-  $items['admin/sirportly'] = array(
+  $items['admin/support'] = array(
     'title' => 'Support',
     'access arguments' => array('submit sirportly ticket'),
-    'page callback' => 'sirportly_home',
+    'page callback' => 'sirportly_first_callback',
     'type' => MENU_NORMAL_ITEM,
   );
 
-  $items['admin/sirportly/submit'] = array(
+  $items['admin/support/tickets'] = array(
+    'title' => t('Active tickets'),
+    'access arguments' => array('submit sirportly ticket'),
+    'page callback' => 'sirportly_home',
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+  );
+
+  $items['admin/support/knowledge-base'] = array(
+    'title' => t('Knowledge Base'),
+    'page callback' => 'sirportly_view_knowledge_base',
+    'access arguments' => array('submit sirportly ticket'),
+    'type' => MENU_LOCAL_TASK,
+  );
+
+  $items['admin/support/submit'] = array(
     'title' => 'Submit a support ticket',
     'description' => 'Submit a support ticket directly to {{ company_name }} from here.',
     'page callback' => 'sirportly_ticket_submit',
     'access arguments' => array('submit sirportly ticket'),
-    'type' => MENU_LOCAL_ACTION,
+    'type' => MENU_LOCAL_TASK,
   );
 
   $items['admin/sirportly/view/%'] = array(
@@ -56,15 +70,6 @@ function sirportly_menu() {
     'description' => 'Submit a support ticket directly to {{ company_name }} from here.',
     'page callback' => 'sirportly_ticket_view',
     'page arguments' => array(3),
-    'access arguments' => array('submit sirportly ticket'),
-    'type' => MENU_CALLBACK,
-  );
-
-  $items['admin/sirportly/knowledge/view/%'] = array(
-    'title' => 'Knowledgebase',
-    'description' => 'Submit a support ticket directly to {{ company_name }} from here.',
-    'page callback' => 'sirportly_kb_view',
-    'page arguments' => array(4),
     'access arguments' => array('submit sirportly ticket'),
     'type' => MENU_CALLBACK,
   );
@@ -102,6 +107,10 @@ function sirportly_ticket_view($ticket_id) {
     )
   );
 
+}
+
+function sirportly_first_callback() {
+  drupal_goto('admin/support/tickets');
 }
 
 /**
@@ -179,11 +188,7 @@ function sirportly_home() {
     $ticket_table = '<p class="no-results-tickets">No Tickets To Show</p>';
   }
 
-  $kbs = variable_get('sp_active_knowledgebase', array());
 
-  foreach ($kbs as $key => $kbid) {
-    $kbs[$key] = explode(":", $kbid);
-  }
 
   return theme('sp_support_page', array(
     'ticket_table' => $ticket_table,
@@ -326,17 +331,17 @@ function sirportly_admin() {
   );
 
   // Knowledgebase stuff.
-  $form['sp_knowledgebases'] = array(
+  $form['sp_knowledgebase'] = array(
     '#title' => t('knowledgebases'),
-    '#description' => t('Make your Sirportly knowledgebases visible in the support section.'),
+    '#description' => t('Make a Sirportly knowledgebase visible in the support section.'),
     '#type' => 'fieldset',
   );
 
-  $form['sp_knowledgebases']['sp_active_knowledgebase'] = array(
-    '#type' => 'checkboxes',
+  $form['sp_knowledgebase']['sp_active_knowledgebase'] = array(
+    '#type' => 'radios',
     '#options' => variable_get('sirportly_metadata_knowledgebases', array()),
-    '#title' => t('Active knowledgebases'),
-    '#description' => t('Active knowledgebases will be visible to site users'),
+    '#title' => t('Active knowledgebase'),
+    '#description' => t('The active knowledgebase will be visible to site users'),
     '#default_value' => variable_get('sp_active_knowledgebase'),
   );
 
@@ -350,7 +355,7 @@ function sirportly_admin() {
     '#type' => 'checkbox',
     '#title' => t('Include default module styles'),
     '#description' => t('Include defauly sirportly module styles.'),
-    '#default_value' => variable_get('sp_enable_styling', 1),
+    '#default_value' => variable_get('sp_enable_styling'),
   );
 
 
@@ -614,7 +619,9 @@ function cache_sirportly_metadata() {
 /**
  * View a single knowledgebase article.
  */
-function sirportly_kb_view($kb_id) {
+function sirportly_view_knowledge_base() {
+
+  $kb_id = variable_get('sp_active_knowledgebase', null);
 
   $token = variable_get('sirportly_api_token', '');
 
@@ -650,11 +657,11 @@ function sp_recurseMenuItems($menu, $link_base = NULL) {
 
     $output .= '<li>';
 
-    if (!isset($link_base) && !$m['full_permalink']) {
-      $output .= l($m['title'], 'admin/sirportly/knowledge/view/' . arg(4));
+    if (!isset($link_base) && empty($m['full_permalink'])) {
+      $output .= l($m['title'], 'admin/support/knowledge-base');
     }
     else {
-      $output .= l($m['title'], 'admin/sirportly/knowledge/view/' . arg(4), array('query' => array('p' => (isset($link_base) ? $link_base . '/' : '') . $m['full_permalink'])));
+      $output .= l($m['title'], 'admin/support/knowledge-base', array('query' => array('p' => (isset($link_base) ? $link_base . '/' : '') . $m['full_permalink'])));
     }
 
     if (isset($m['children'])) {

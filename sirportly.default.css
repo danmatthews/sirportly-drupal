@@ -14,11 +14,11 @@ table#ticket-info tr td.label {
 }
 
 #sp-kb-content {
-	margin:0px 280px 0px 0px;
+	margin:0px 340px 0px 0px;
 }
 
 #sp-menu-right {
-	width:220px;
+	width:300px;
 	float:right;
 	padding:9px;
 	border:1px solid #ccc;
@@ -30,11 +30,15 @@ table#ticket-info tr td.label {
 }
 
 #sp-menu-right ul li {
-	list-style:none;
 	margin:2px 0px 4px 0px;
 	padding:0;
+	list-style-position: inside;
+}
+
+#sp-menu-right ul li a.active {
+	font-weight:bold;
 }
 
 #sp-menu-right ul li ul {
-	margin-left:15px;
+	margin-left:20px;
 }
