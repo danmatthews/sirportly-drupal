@@ -23,6 +23,17 @@ function sirportly_init() {
 }
 
 /**
+ * Block access to a page via a redirect if credentials aren't set.
+ */
+function blockAccessIfCredentialsNotSet() {
+  $set = variable_get('sp_credentials_set', NULL);
+  if (!$set) {
+    drupal_set_message("You must complete the settings form before you can use the sirportly interface", "error");
+    drupal_goto('admin/config/services/sirportly');
+  }
+}
+
+/**
  * Implements hook_menu().
  */
 function sirportly_menu() {
@@ -44,14 +55,14 @@ function sirportly_menu() {
   );
 
   $items['admin/support/tickets'] = array(
-    'title' => t('Active tickets'),
+    'title' => 'Active tickets',
     'access arguments' => array('submit sirportly ticket'),
     'page callback' => 'sirportly_home',
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
 
   $items['admin/support/knowledge-base'] = array(
-    'title' => t('Knowledge Base'),
+    'title' => 'Knowledge Base',
     'page callback' => 'sirportly_view_knowledge_base',
     'access arguments' => array('submit sirportly ticket'),
     'type' => MENU_LOCAL_TASK,
@@ -108,7 +119,9 @@ function sirportly_ticket_view($ticket_id) {
   );
 
 }
-
+/**
+ * Called by first page to redirect to tickets page.
+ */
 function sirportly_first_callback() {
   drupal_goto('admin/support/tickets');
 }
@@ -117,6 +130,10 @@ function sirportly_first_callback() {
  * Sirportly dashboard tab.
  */
 function sirportly_home() {
+
+  drupal_set_title("Active support tickets");
+
+  blockAccessIfCredentialsNotSet();
 
   $token = variable_get('sirportly_api_token', '');
 
@@ -127,7 +144,7 @@ function sirportly_home() {
   $sirportly_ids = variable_get("Sirportly_ID_list_{$user->uid}", array());
 
   if (!$sirportly_ids || count($sirportly_ids) === 0) {
-    return 'You have not submitted any tickets to us yet.';
+    return '<p>You have not submitted any tickets to us yet.</p>';
   }
 
   $s = new Sirportly($token, $secret);
@@ -139,7 +156,7 @@ function sirportly_home() {
     $users = $s->query('/api/v1/tickets/customer', array('customer' => $sid));
 
     foreach ($users['records'] as $t) {
-      if ($t['status_type'] == 0) {
+      if ($t['status']['status_type'] == 0) {
         $tickets[] = $t;
       }
 
@@ -188,11 +205,8 @@ function sirportly_home() {
     $ticket_table = '<p class="no-results-tickets">No Tickets To Show</p>';
   }
 
-
-
   return theme('sp_support_page', array(
-    'ticket_table' => $ticket_table,
-    'knowledge_bases' => $kbs)
+    'ticket_table' => $ticket_table)
   );
 
 }
@@ -267,10 +281,6 @@ function sirportly_theme() {
  */
 function sirportly_admin() {
 
-  // Check that the needed metadata is there,
-  // and if not, download it and store it.
-  cache_sirportly_metadata();
-
   $form = array();
 
   $collapsed = is_string(variable_get('sirportly_api_token', NULL)) && is_string(variable_get('sirportly_api_secret', NULL)) ? TRUE : FALSE;
@@ -297,6 +307,14 @@ function sirportly_admin() {
     '#default_value' => variable_get('sirportly_api_secret', ''),
     '#required' => TRUE,
   );
+
+  if (!variable_get('sirportly_api_secret', NULL) || !variable_get('sirportly_api_token', NULL)) {
+    return system_settings_form($form);
+  }
+
+  // Check that the needed metadata is there,
+  // and if not, download it and store it.
+  cache_sirportly_metadata();
 
   // Ticket routing information.
   $form['ticket_information'] = array(
@@ -358,6 +376,11 @@ function sirportly_admin() {
     '#default_value' => variable_get('sp_enable_styling'),
   );
 
+  $form['sp_credentials_set'] = array(
+    '#type' => 'hidden',
+    '#value' => 1,
+  );
+
 
   return system_settings_form($form);
 
@@ -397,7 +420,9 @@ function __determine_all_sp_set() {
  */
 function sirportly_ticket_submit() {
 
-  __determine_all_sp_set();
+  drupal_set_title("Submit a support ticket");
+
+  blockAccessIfCredentialsNotSet();
 
   $token = variable_get('sirportly_api_token', '');
 
@@ -412,8 +437,8 @@ function sirportly_ticket_submit() {
   $company_name = variable_get('company_name', 'us');
 
   $output = '<p>Need help with something? Fill out the form below and a support request will be sent directly to ' . $company_name . '.';
-
-  $output .= render(drupal_get_form('sirportly_ticket_submit_form'));
+  $form = drupal_get_form('sirportly_ticket_submit_form');
+  $output .= render($form);
 
   return $output;
 
@@ -538,7 +563,7 @@ function sirportly_ticket_submit_form_submit($form, &$form_state) {
 
       variable_set($list_key, $customer_list);
 
-      drupal_goto('admin/sirportly');
+      drupal_goto('admin/support');
     }
     else {
       form_set_error("", "Your ticket could not be submitted due to an unknown error, please try again in 30 seconds.");
@@ -621,7 +646,15 @@ function cache_sirportly_metadata() {
  */
 function sirportly_view_knowledge_base() {
 
-  $kb_id = variable_get('sp_active_knowledgebase', null);
+  drupal_set_title("Knowledge base");
+
+  blockAccessIfCredentialsNotSet();
+
+  $kb_id = variable_get('sp_active_knowledgebase', NULL);
+
+  if (!$kb_id) {
+    return '<p>No knowledgebase content is available.</p>';
+  }
 
   $token = variable_get('sirportly_api_token', '');
 
@@ -638,6 +671,7 @@ function sirportly_view_knowledge_base() {
     $kbp = $s->kb_page($kb_id, '');
   }
   drupal_set_title($kbp['page']['title']);
+
   $menu = sp_recurseMenuItems($kb);
 
   return theme('knowledgebase_page', array(
@@ -657,19 +691,31 @@ function sp_recurseMenuItems($menu, $link_base = NULL) {
 
     $output .= '<li>';
 
+    // NOTE: using url() and custom HTML here because the l() function
+    // declares class="active" on all of them otherwise.
     if (!isset($link_base) && empty($m['full_permalink'])) {
-      $output .= l($m['title'], 'admin/support/knowledge-base');
+      $link = 'admin/support/knowledge-base';
     }
     else {
-      $output .= l($m['title'], 'admin/support/knowledge-base', array('query' => array('p' => (isset($link_base) ? $link_base . '/' : '') . $m['full_permalink'])));
+      $plink = (isset($link_base) ? $link_base . '/' : '') . $m['full_permalink'];
+      $link = 'admin/support/knowledge-base?p=' . $plink;
+    }
+
+    $get_path_match = isset($_GET['p']) && isset($plink) && $_GET['p'] == $plink ? TRUE : FALSE;
+
+    if (current_path() == $link || $get_path_match) {
+      $link = base_path() . $link;
+      $output .= '<a href="' . $link . '" class="active">' . $m['title'] . '</a>';
+    }
+    else {
+      $link = base_path() . $link;
+      $output .= '<a href="' . $link . '">' . $m['title'] . '</a>';
     }
 
     if (isset($m['children'])) {
       $output .= sp_recurseMenuItems($m['children'], $m['permalink']);
     }
-
     $output .= '</li>';
-
   }
 
   $output .= '</ul>';

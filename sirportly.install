@@ -10,8 +10,12 @@
   */
 function sirportly_uninstall() {
   // Delete all lists.
-  db_delete('variable')
-    ->condition('sirportly_api_key')
-    ->execute();
-  variable_del('sirportly_api_key');
+  variable_del('sirportly_api_token');
+  variable_del('sirportly_api_secret');
+  variable_del('sp_credentials_set');
+  variable_del('sp_enable_styling');
+  variable_del('sp_active_knowledgebase');
+  variable_del('sp_ticket_department');
+  variable_del('sp_ticket_status');
+  variable_del('sp_ticket_priority');
 }

@@ -1,12 +1,7 @@
 name = Sirportly
 description = Adds basic integration with Sirportly
 core = 7.x
-php = 5.0
 configure = admin/config/services/sirportly
-
-files[] = sirportly.module
-files[] = sirportly.install
-files[] = lib/class.php
 
 package = Other
 version = 7.x-1.0-dev

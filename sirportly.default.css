@@ -17,6 +17,16 @@ table#ticket-info tr td.label {
 	margin:0px 340px 0px 0px;
 }
 
+#sp-kb-content pre {
+	background:#eee;
+	padding:10px;
+	font-size:12px;
+	margin:10px 0px;
+}
+#sp-kb-content pre code {
+	font-size:12px;
+}
+
 #sp-menu-right {
 	width:300px;
 	float:right;
