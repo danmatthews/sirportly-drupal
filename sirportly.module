@@ -6,8 +6,12 @@
  * For Sirportly information see: http://sirportly.com
  */
 
-include_once 'libs/class.php';
-include_once 'libs/markdown.php';
+if (!class_exists('Markdown')) {
+  include_once 'libs/markdown.php';
+}
+if (!class_exists('Sirportly')) {
+  include_once 'libs/class.php';
+}
 
 define('SIRPORTLY_API_URL', 'https://api.sirportly.com/');
 
