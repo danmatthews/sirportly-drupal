@@ -6,11 +6,8 @@
  * For Sirportly information see: http://sirportly.com
  */
 
-if (!class_exists('Markdown')) {
-  include_once 'libs/markdown.php';
-}
 if (!class_exists('Sirportly')) {
-  include_once 'libs/class.php';
+  include_once dirname(__FILE__) . '/libs/class.php';
 }
 
 define('SIRPORTLY_API_URL', 'https://api.sirportly.com/');
@@ -20,6 +17,10 @@ define('SIRPORTLY_API_URL', 'https://api.sirportly.com/');
  */
 function sirportly_init() {
 
+  if (!class_exists('Sirportly')) {
+    drupal_set_message("Please download and install the <a href=\"https://github.com/sirportly/php-library\">Sirportly-PHP</a> library to use the sirportly module", "error");
+  }
+
   if (variable_get('sp_enable_styling', NULL)) {
     drupal_add_css(drupal_get_path('module', 'sirportly') . '/sirportly.default.css');
   }
@@ -27,9 +28,39 @@ function sirportly_init() {
 }
 
 /**
+ * Parses markdown by using the GitHub API.
+ *
+ * @param string $text
+ *   The markdown text file
+ *
+ * @return string
+ *   Rendered HTML
+ */
+function sirportly_parseMarkDown($text) {
+
+  $ch = curl_init();
+  curl_setopt($ch, CURLOPT_URL, "https://api.github.com/markdown/raw");
+  curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+  curl_setopt($ch, CURLOPT_POST, 1);
+  curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, TRUE);
+  curl_setopt($ch, CURLOPT_POSTFIELDS, $text);
+  curl_setopt($ch, CURLOPT_HTTPHEADER, array('Content-Type: text/plain'));
+
+  $result = curl_exec($ch);
+
+  if ($result) {
+    return $result;
+  }
+  else {
+    die("An error occured trying to show you this item: " . curl_error($ch));
+  }
+
+}
+
+/**
  * Block access to a page via a redirect if credentials aren't set.
  */
-function blockAccessIfCredentialsNotSet() {
+function sirportly_blockAccessIfCredentialsNotSet() {
   $set = variable_get('sp_credentials_set', NULL);
   if (!$set) {
     drupal_set_message("You must complete the settings form before you can use the sirportly interface", "error");
@@ -137,7 +168,7 @@ function sirportly_home() {
 
   drupal_set_title("Active support tickets");
 
-  blockAccessIfCredentialsNotSet();
+  sirportly_blockAccessIfCredentialsNotSet();
 
   $token = variable_get('sirportly_api_token', '');
 
@@ -178,7 +209,7 @@ function sirportly_home() {
   $rows = array();
 
   // Sort the tickets.
-  usort($tickets, 'sp_sort_ticket_array');
+  usort($tickets, 'sirportly_sort_ticket_array');
 
   foreach ($tickets as $ticket) {
 
@@ -217,7 +248,7 @@ function sirportly_home() {
 /**
  * USORT callback function.
  */
-function sp_sort_ticket_array($a, $b) {
+function sirportly_sort_ticket_array($a, $b) {
 
   $timea = strtotime($a['submitted_at']);
 
@@ -396,7 +427,7 @@ function sirportly_admin() {
  * @return bool
  *   True if all settings are ok, false if not.
  */
-function __determine_all_sp_set() {
+function sirportly_determine_all_sp_set() {
 
   $token = variable_get('sirportly_api_token', NULL);
 
@@ -426,7 +457,7 @@ function sirportly_ticket_submit() {
 
   drupal_set_title("Submit a support ticket");
 
-  blockAccessIfCredentialsNotSet();
+  sirportly_blockAccessIfCredentialsNotSet();
 
   $token = variable_get('sirportly_api_token', '');
 
@@ -652,7 +683,7 @@ function sirportly_view_knowledge_base() {
 
   drupal_set_title("Knowledge base");
 
-  blockAccessIfCredentialsNotSet();
+  sirportly_blockAccessIfCredentialsNotSet();
 
   $kb_id = variable_get('sp_active_knowledgebase', NULL);
 
@@ -680,7 +711,7 @@ function sirportly_view_knowledge_base() {
 
   return theme('knowledgebase_page', array(
     'menu' => $menu,
-    'content' => Markdown($kbp['page']['content']),
+    'content' => sirportly_parseMarkDown($kbp['page']['content']),
   ));
 }
 
