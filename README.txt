@@ -10,11 +10,12 @@ None
 
 -- INSTALLATION --
 
-1. Enable the module.
-2. Click the configure link on the modules list or navigate to http://yoursite.com/admin/configure/services/sirportly
-3. Enter your api credentials and click save, more options will appear.
-4. Configure ticket priority and brand settings, this is required by the API and you will not be able to access the support tab until you do this.
-5. Navigate to /suppor where you'll find the ticket dashboard, and the 'submit' and 'knowledgebase' tabs.
+1. Download and install the official Sirportly PHP wrapper from `https://github.com/sirportly/php-library`. Place the contents of the library into `sites/all/libraries/sirportly`, so that the library sits at `sites/all/libraries/sirportly/class.php`.
+2. Enable the module.
+3. Click the configure link on the modules list or navigate to http://yoursite.com/admin/configure/services/sirportly
+4. Enter your api credentials and click save, more options will appear.
+5. Configure ticket priority and brand settings, this is required by the API and you will not be able to access the support tab until you do this.
+6. Navigate to /suppor where you'll find the ticket dashboard, and the 'submit' and 'knowledgebase' tabs.
 
 -- CUSTOMIZATION --
 

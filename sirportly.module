@@ -6,16 +6,21 @@
  * For Sirportly information see: http://sirportly.com
  */
 
-if (!class_exists('Sirportly')) {
-  include_once dirname(__FILE__) . '/libs/class.php';
-}
-
 define('SIRPORTLY_API_URL', 'https://api.sirportly.com/');
 
 /**
  * Implements hook_init().
  */
 function sirportly_init() {
+
+  // Load the sirportly library.
+  if (function_exists('libraries_load')) {
+    libraries_load('sirportly');
+  }
+  else {
+    $path = libraries_get_path('sirportly');
+    include $path . '/class.php';
+  }
 
   if (!class_exists('Sirportly')) {
     drupal_set_message("Please download and install the <a href=\"https://github.com/sirportly/php-library\">Sirportly-PHP</a> library to use the sirportly module", "error");
@@ -188,7 +193,11 @@ function sirportly_home() {
 
   foreach ($sirportly_ids as $sid) {
 
-    $users = $s->query('/api/v1/tickets/customer', array('customer' => $sid));
+    $method = new ReflectionMethod('Sirportly', 'query');
+
+    $method->setAccessible(TRUE);
+
+    $users = $method->invokeArgs($s, array('/api/v1/tickets/customer', array('customer' => $sid)));
 
     foreach ($users['records'] as $t) {
       if ($t['status']['status_type'] == 0) {
@@ -700,10 +709,10 @@ function sirportly_view_knowledge_base() {
   $kb = $s->kb($kb_id);
 
   if (isset($_GET['p']) && is_string($_GET['p'])) {
-    $kbp = $s->kb_page($kb_id, $_GET['p']);
+    $kbp = kb_page($kb_id, $_GET['p']);
   }
   else {
-    $kbp = $s->kb_page($kb_id, '');
+    $kbp = kb_page($kb_id, '');
   }
   drupal_set_title($kbp['page']['title']);
 
@@ -712,6 +721,38 @@ function sirportly_view_knowledge_base() {
   return theme('knowledgebase_page', array(
     'menu' => $menu,
     'content' => sirportly_parseMarkDown($kbp['page']['content']),
+  ));
+}
+
+/**
+ * Extension method to the Sirportly library.
+ *
+ * @param int $kb_id
+ *   Knowledgebase ID
+ * @param string $path
+ *   The Knowledgebase page path.
+ *
+ * @return object|array
+ *   The Decoded JSON response
+ */
+function kb_page($kb_id, $path) {
+
+  $method = new ReflectionMethod('Sirportly', 'query');
+
+  $method->setAccessible(TRUE);
+
+  $token = variable_get('sirportly_api_token', '');
+
+  $secret = variable_get('sirportly_api_secret', '');
+
+  $s = new Sirportly($token, $secret);
+
+  return $method->invokeArgs($s, array(
+    '/api/v1/knowledge/page',
+    array(
+      'kb' => $kb_id,
+      'path' => $path,
+    ),
   ));
 }
 
