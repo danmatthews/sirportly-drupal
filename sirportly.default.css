@@ -1,54 +1,54 @@
 p.ticket-recieved {
-	font-weight:bold;
-	text-align: center;
+  font-weight: bold;
+  text-align: center;
 }
 
 table#ticket-info tr td {
-	border:1px solid #ccc;
+  border: 1px solid #ccc;
 }
 
 table#ticket-info tr td.label {
-	width:15%;
-	background:#E0E0D8;
-	font-weight:bold;
+  background: #e0e0d8;
+  font-weight: bold;
+  width: 15%;
 }
 
 #sp-kb-content {
-	margin:0px 340px 0px 0px;
+  margin: 0px 340px 0px 0px;
 }
 
 #sp-kb-content pre {
-	background:#eee;
-	padding:10px;
-	font-size:12px;
-	margin:10px 0px;
+  background: #eee;
+  font-size: 12px;
+  margin: 10px 0px;
+  padding: 10px;
 }
 #sp-kb-content pre code {
-	font-size:12px;
+  font-size: 12px;
 }
 
 #sp-menu-right {
-	width:300px;
-	float:right;
-	padding:9px;
-	border:1px solid #ccc;
+  border: 1px solid #ccc;
+  float: right;
+  padding: 9px;
+  width: 300px;
 }
 
 #sp-menu-right ul {
-	margin:0;
-	padding:0;
+  margin: 0;
+  padding: 0;
 }
 
 #sp-menu-right ul li {
-	margin:2px 0px 4px 0px;
-	padding:0;
-	list-style-position: inside;
+  list-style-position: inside;
+  margin: 2px 0px 4px 0px;
+  padding: 0;
 }
 
 #sp-menu-right ul li a.active {
-	font-weight:bold;
+  font-weight: bold;
 }
 
 #sp-menu-right ul li ul {
-	margin-left:20px;
+  margin-left: 20px;
 }
