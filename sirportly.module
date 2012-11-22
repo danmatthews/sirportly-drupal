@@ -358,7 +358,7 @@ function sirportly_admin() {
 
   // Check that the needed metadata is there,
   // and if not, download it and store it.
-  cache_sirportly_metadata();
+  sirportly_cache_sirportly_metadata();
 
   // Ticket routing information.
   $form['ticket_information'] = array(
@@ -625,7 +625,7 @@ function sirportly_ticket_submit_form_submit($form, &$form_state) {
 /**
  * Get and cache the data from sirportly.
  */
-function cache_sirportly_metadata() {
+function sirportly_cache_sirportly_metadata() {
 
   $token = variable_get('sirportly_api_token', '');
 
@@ -709,14 +709,14 @@ function sirportly_view_knowledge_base() {
   $kb = $s->kb($kb_id);
 
   if (isset($_GET['p']) && is_string($_GET['p'])) {
-    $kbp = kb_page($kb_id, $_GET['p']);
+    $kbp = sirportly_kb_page($kb_id, $_GET['p']);
   }
   else {
-    $kbp = kb_page($kb_id, '');
+    $kbp = sirportly_kb_page($kb_id, '');
   }
   drupal_set_title($kbp['page']['title']);
 
-  $menu = sp_recurseMenuItems($kb);
+  $menu = sirportly_recurseMenuItems($kb);
 
   return theme('knowledgebase_page', array(
     'menu' => $menu,
@@ -735,7 +735,7 @@ function sirportly_view_knowledge_base() {
  * @return object|array
  *   The Decoded JSON response
  */
-function kb_page($kb_id, $path) {
+function sirportly_kb_page($kb_id, $path) {
 
   $method = new ReflectionMethod('Sirportly', 'query');
 
@@ -759,7 +759,7 @@ function kb_page($kb_id, $path) {
 /**
  * Recursively output the menu array into a HTML menu.
  */
-function sp_recurseMenuItems($menu, $link_base = NULL) {
+function sirportly_recurseMenuItems($menu, $link_base = NULL) {
 
   $output = '<ul>';
 
@@ -789,7 +789,7 @@ function sp_recurseMenuItems($menu, $link_base = NULL) {
     }
 
     if (isset($m['children'])) {
-      $output .= sp_recurseMenuItems($m['children'], $m['permalink']);
+      $output .= sirportly_recurseMenuItems($m['children'], $m['permalink']);
     }
     $output .= '</li>';
   }
@@ -798,16 +798,6 @@ function sp_recurseMenuItems($menu, $link_base = NULL) {
 
   return $output;
 
-}
-
-/**
- * Lovely dump function.
- *
- * @param mixed $var
- *   any type of variable to dump
- */
-function dump($var) {
-  echo '<pre>' . print_r($var, 1) . '</pre>';
 }
 
 /**
