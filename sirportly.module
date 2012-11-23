@@ -339,7 +339,7 @@ function sirportly_admin() {
   $form['sirportly_account']['sirportly_api_token'] = array(
     '#type' => 'textfield',
     '#title' => t('API Token'),
-    '#description' => t('Your Sirpotly API Token. See <a href="http://sirportly.com/docs/api-specification">documentation</a> for details.'),
+    '#description' => t('Your Sirportly API Token. See <a href="http://sirportly.com/docs/api-specification">documentation</a> for details.'),
     '#default_value' => variable_get('sirportly_api_token', ''),
     '#required' => TRUE,
   );
@@ -347,7 +347,7 @@ function sirportly_admin() {
   $form['sirportly_account']['sirportly_api_secret'] = array(
     '#type' => 'textfield',
     '#title' => t('API Secret'),
-    '#description' => t('Your Sirpotly API Secret. See <a href="http://sirportly.com/docs/api-specification">documentation</a> for details.'),
+    '#description' => t('Your Sirportly API Secret. See <a href="http://sirportly.com/docs/api-specification">documentation</a> for details.'),
     '#default_value' => variable_get('sirportly_api_secret', ''),
     '#required' => TRUE,
   );
