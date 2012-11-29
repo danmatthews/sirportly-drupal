@@ -9,6 +9,23 @@
 define('SIRPORTLY_API_URL', 'https://api.sirportly.com/');
 
 /**
+ * Implements hook_libraries_info().
+ */
+function sirportly_libraries_info() {
+
+  $libraries['sirportly'] = array(
+    'name'=>'Sirportly API',
+    'vendor_url' => 'https://github.com/sirportly/php-library',
+    'download_url' => 'https://github.com/sirportly/php-library',
+    'files' => array('php' => array('class.php')),
+    'version' => 'unversioned',
+  );
+
+  return $libraries;
+
+}
+
+/**
  * Implements hook_init().
  */
 function sirportly_init() {
@@ -87,28 +104,28 @@ function sirportly_menu() {
     'type' => MENU_NORMAL_ITEM,
   );
 
-  $items['admin/support'] = array(
+  $items['admin/support/sirportly'] = array(
     'title' => 'Support',
     'access arguments' => array('submit sirportly ticket'),
     'page callback' => 'sirportly_first_callback',
     'type' => MENU_NORMAL_ITEM,
   );
 
-  $items['admin/support/tickets'] = array(
+  $items['admin/support/sirportly/tickets'] = array(
     'title' => 'Active tickets',
     'access arguments' => array('submit sirportly ticket'),
     'page callback' => 'sirportly_home',
     'type' => MENU_DEFAULT_LOCAL_TASK,
   );
 
-  $items['admin/support/knowledge-base'] = array(
+  $items['admin/support/sirportly/knowledge-base'] = array(
     'title' => 'Knowledge Base',
     'page callback' => 'sirportly_view_knowledge_base',
     'access arguments' => array('submit sirportly ticket'),
     'type' => MENU_LOCAL_TASK,
   );
 
-  $items['admin/support/submit'] = array(
+  $items['admin/support/sirportly/submit'] = array(
     'title' => 'Submit a support ticket',
     'description' => 'Submit a support ticket directly to {{ company_name }} from here.',
     'page callback' => 'sirportly_ticket_submit',
@@ -116,11 +133,11 @@ function sirportly_menu() {
     'type' => MENU_LOCAL_TASK,
   );
 
-  $items['admin/sirportly/view/%'] = array(
+  $items['admin/support/sirportly/view/%'] = array(
     'title' => 'Support Ticket',
     'description' => 'Submit a support ticket directly to {{ company_name }} from here.',
     'page callback' => 'sirportly_ticket_view',
-    'page arguments' => array(3),
+    'page arguments' => array(4),
     'access arguments' => array('submit sirportly ticket'),
     'type' => MENU_CALLBACK,
   );
@@ -163,7 +180,7 @@ function sirportly_ticket_view($ticket_id) {
  * Called by first page to redirect to tickets page.
  */
 function sirportly_first_callback() {
-  drupal_goto('admin/support/tickets');
+  drupal_goto('admin/support/sirportly/tickets');
 }
 
 /**
@@ -225,7 +242,7 @@ function sirportly_home() {
     $rows[] = array(
       $ticket['subject'],
       date("jS F Y, H:ia", strtotime($ticket['submitted_at'])),
-      l(t('View'), 'admin/sirportly/view/' . $ticket['reference']),
+      l(t('View'), 'admin/support/sirportly/view/' . $ticket['reference']),
     );
 
   }
@@ -607,7 +624,7 @@ function sirportly_ticket_submit_form_submit($form, &$form_state) {
 
       variable_set($list_key, $customer_list);
 
-      drupal_goto('admin/support');
+      drupal_goto('admin/support/sirportly');
     }
     else {
       form_set_error("", "Your ticket could not be submitted due to an unknown error, please try again in 30 seconds.");
@@ -770,11 +787,11 @@ function sirportly_recurseMenuItems($menu, $link_base = NULL) {
     // NOTE: using url() and custom HTML here because the l() function
     // declares class="active" on all of them otherwise.
     if (!isset($link_base) && empty($m['full_permalink'])) {
-      $link = 'admin/support/knowledge-base';
+      $link = 'admin/support/sirportly/knowledge-base';
     }
     else {
       $plink = (isset($link_base) ? $link_base . '/' : '') . $m['full_permalink'];
-      $link = 'admin/support/knowledge-base?p=' . $plink;
+      $link = 'admin/support/sirportly/knowledge-base?p=' . $plink;
     }
 
     $get_path_match = isset($_GET['p']) && isset($plink) && $_GET['p'] == $plink ? TRUE : FALSE;
