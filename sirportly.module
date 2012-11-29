@@ -14,7 +14,7 @@ define('SIRPORTLY_API_URL', 'https://api.sirportly.com/');
 function sirportly_libraries_info() {
 
   $libraries['sirportly'] = array(
-    'name'=>'Sirportly API',
+    'name' => 'Sirportly API',
     'vendor_url' => 'https://github.com/sirportly/php-library',
     'download_url' => 'https://github.com/sirportly/php-library',
     'files' => array('php' => array('class.php')),
